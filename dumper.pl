@@ -3,10 +3,17 @@
 use IO::Socket;
 use Data::Dumper;
 
-$query_handle = IO::Socket::INET->new(Proto => 'udp', PeerAddr => 'so.nuclearfallout.net', PeerPort => '44400') or die "socket: $@";
+$host = 'so.nuclearfallout.net';
+$port = '44400';
+
+$query_handle = IO::Socket::INET->new(Proto => 'udp', 
+		#Blocking => 0,
+		PeerAddr => $host, 
+		PeerPort => $port)
+	or die "socket: $@";
 
 $fourbyte = "ÿÿÿÿ";
-$query = $fourbyte . "getstatus";
+$query = $fourbyte . "getstatus EOSeos";
 
 # port to listen on
 #$local_port = $query_handle->sockport();
@@ -19,9 +26,10 @@ $query_handle->send($query);
 
 $return_handle = $query_handle->accept();
 
-#while ($query_handle->recv($joke,8192)) {
-while (<$query_handle>) {
-	print $_;
+#while (<$query_handle>) {
+do {
+	$query_handle->recv($joke,8192);
+	print $joke . "\n";
 	
-}
+} until ($joke ne "\n"); 
 
