@@ -1,19 +1,18 @@
 #!/usr/bin/perl -w
-
 use IO::Socket;
-use Data::Dumper;
 
 $host = 'so.nuclearfallout.net';
 $port = '44400';
 
 $query_handle = IO::Socket::INET->new(Proto => 'udp', 
-		#Blocking => 0,
+		Blocking => 1,
 		PeerAddr => $host, 
 		PeerPort => $port)
 	or die "socket: $@";
 
 $fourbyte = "ÿÿÿÿ";
-$query = $fourbyte . "getstatus EOSeos";
+$fourbyte = chr(255) . chr(255) . chr(255) . chr(255);
+$query = $fourbyte . "getstatus";
 
 # port to listen on
 #$local_port = $query_handle->sockport();
@@ -24,12 +23,19 @@ $query = $fourbyte . "getstatus EOSeos";
 
 $query_handle->send($query);
 
-$return_handle = $query_handle->accept();
+$query_handle->accept();
 
 #while (<$query_handle>) {
-do {
-	$query_handle->recv($joke,8192);
-	print $joke . "\n";
-	
-} until ($joke ne "\n"); 
+#do {
+#	$query_handle->recv($joke,8192);
+#	print $joke . "\n";
+#	
+#} until ($joke ne "\n"); 
 
+#for (my $i = 0; $i < $self->num_clients; $i++) {
+while ($_ = <$query_handle>) {
+	print;
+	open WTF, ">wtf";
+	print WTF $_;
+	close WTF
+}

@@ -1,7 +1,7 @@
-#!/usr/bin/perl -w
-use IO::Socket;
+#!/usr/bin/perl 
 
 package Query; 
+use IO::Socket;
 use strict;
 
 sub new {
@@ -65,8 +65,25 @@ sub max_clients {
 
 sub game_type {
 	my $self = shift;
-	if (@_) { $self->{GAME_TYPE} = shift }
-	return $self->{GAME_TYPE};
+
+	my ($test);
+
+	if (@_) { 
+		$test = shift; 
+	}
+	
+	my $game_types = { "ca" => "Clan Arena",
+							 "dm" => "Deathmatch",
+							 "tdm" => "Team Deathmatch",
+							 "ctf" => "Capture The Flag",
+							 "bomb" => "Bombing and Defuse",
+							 "da"	=> "Duel Arena",
+							 "race" => "Race"};
+	if ($test) { 
+		$self->{GAME_TYPE} = $test;
+	}
+
+	return $game_types->{ $self->{GAME_TYPE} };
 }
 
 sub num_clients {
@@ -81,6 +98,59 @@ sub clients {
 	return @{ $self->{CLIENTS} };
 }
 
+sub clientlist {
+	my $self = shift;
+
+	my ($back, $score, $ping, $name, $team);
+
+	$back = "<ul>\n";
+	
+	foreach ($self->clients) {
+		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
+		($score, $ping, $name, $team) = ($1, $2, $3, $4);
+		$back .= qq/<li class="player">/ . $name . "   " . $score . "</li>\n";
+	}
+
+	$back .= "</ul>";
+	return $back;
+}
+
+sub topscores {
+	my $self = shift;
+
+	my %scores;
+	my %teams;
+	my %players;
+
+	my ($back);
+
+	my @clients = $self->clients;
+	foreach (@clients) {
+		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
+		my ($score, $ping, $name, $team) = ($1, $2, $3, $4);
+
+		$scores{$name} = $score;
+		$teams{$name} = $team;
+	}
+
+
+		my @top_players = sort {  $scores{$b} <=> $scores{$a} } keys %scores;
+		
+
+		$back = "<ul>\n";
+		
+#		my $huh = ((@top_players) < 2)?(@top_players):'2';
+#		print $huh . "huh\n";
+		foreach (0 .. ((@top_players) < 2)?(@top_players):'2') {
+			(@top_players == 0) && next;
+			# $back .= qq/<li class="players">/ . $top_players[$_] . "  " .  $scores{ $top_players[$_] } . "</li>\n";
+			$back .= qq/<li class="players">/ . $top_players[$_ - 1] . "  " .  $scores{ $top_players[$_ - 1] } . "</li>\n";
+		}
+
+		$back .= "</ul>\n";
+		return $back;
+}
+
 sub GetData {
 	my $self = shift;
 	my ($host, $port) = @_;	
@@ -88,68 +158,95 @@ sub GetData {
 	my ($query_handle, $fourbyte, $query, $return_handle, $sv_reply, $out);
 	my @client_slurp;
 
- 	# open up a UDP sock to the server
+	# open up a UDP sock to the server
 	$query_handle = IO::Socket::INET->new(Proto => 'udp', 
+			Blocking => 1,
 			PeerAddr => $host, 
-			PeerPort => $port,
-			Blocking => 0)
+			PeerPort => $port)
 		or die "socket: $@";
 
-	$fourbyte = "ÿÿÿÿ"; # yeah one day Ill figure out how to generate this properly
-		$query = $fourbyte . "getinfo"; # supposedly the query to get all info
+	$fourbyte = chr(255) . chr(255) . chr(255) . chr(255);
+	$query = $fourbyte . "getstatus";
 
 		$query_handle->send($query); # send our request to the server
 
-		$return_handle = $query_handle->accept(); # accept data back from this socket
+		$query_handle->accept(); # accept data back from this socket
 
-		# process header / cvars
-		do {
-			# take a line
-			$query_handle->recv($_,4098);
-			print;
+	# process header / cvars
+	do {
+	# take a line
+		$_ = <$query_handle>;
+		chomp; 
+	} until (m/challenge/);
 
-			# at challenge line?
-			if (m/\\challenge\\/) {
-				m/.*fs_game\\([^\\]*).*g_match_score\\([^\\]*).*g_match_time\\([^\\]*).*g_needpass\\([^\\]*).*mapname\\([^\\]*).*sv_hostname\\([^\\]*).*sv_maxclients\\([^\\]*).*gametype\\([^\\]*).*clients\\([^\\]*).*/;
+	# at challenge line?
+	if (m/\\challenge\\/) {
+		m/.*fs_game\\([^\\]*).*g_match_score\\([^\\]*).*g_match_time\\([^\\]*).*g_needpass\\([^\\]*).*mapname\\([^\\]*).*sv_hostname\\([^\\]*).*sv_maxclients\\([^\\]*).*gametype\\([^\\]*).*clients\\([^\\]*).*/;
 
-				# store for later
-				$self->mod($1);
-				$self->scores($2);
-				$self->match_time($3);
-				$self->need_pass($4);
-				$self->map_name($5);
-				$self->host_name($6);
-				$self->max_clients($7);
-				$self->game_type($8);
-				$self->num_clients($9);
-			}
-		} until (m/\\challenge\\/);
+	# store for later
+		$self->mod($1);
+		$self->scores($2);
+		$self->match_time($3);
+		$self->need_pass($4);
+		$self->map_name($5);
+		$self->host_name($6);
+		$self->max_clients($7);
+		$self->game_type($8);
+		$self->num_clients($9);
+	}
 
 
-		# slurp up the players
-		do {
-			$query_handle->recv($sv_reply,4098);
-			print $sv_reply;
-			$self->clients($sv_reply);
-		} until ($sv_reply ne "\n");
+	# slurp up the players
+	for (my $i = 0; $i < $self->num_clients; $i++) {
+		$_ = <$query_handle>;
+		chomp; 
 
-		# test client store
-		foreach ($self->clients) {
-			print $_ . "\n";
-		}
+		$self->clients($_);
+	} 
+
+	# test client store
+#	foreach ($self->clients) {
+#		print "Adding client\n";
+#		print $_;
+#	}
 
 	close($query_handle);
 
 }
 
 sub PrintShortStatus() {
+	my $self = shift;
 	$_ = $self->host_name . "\n" . $self->map_name . "\n" . $self->num_clients . "/" . $self->max_clients . "\n";
 	print;
 }
 
-sub PrintToWeb {
-	$_ = 
+sub GetFullStatus {
+	my $self = shift;
 
+	open TPL, "templates/default.tpl"; # TODO: other templates
+	my @template = <TPL>;
+	my $tpl = join ('',@template);
+
+	my @tags = qw/HOST_NAME GAME_TYPE TOP_SCORES MAP_NAME CLIENTS MAX_PLAYERS CLIENT_LIST/;
+	my @fills = ($self->host_name, $self->game_type, $self->topscores, $self->map_name, $self->num_clients, $self->max_clients, $self->clientlist);
+
+	my $tagiter = 0;	
+	foreach (@tags) {
+		$tpl =~ s/##$_##/$fills[$tagiter]/;
+		$tagiter++;
+	}
+		
+
+#	my @clients =  $self->clients();
+#	foreach (@clients) {
+#		print . "\n";
+#	}
+
+	return $tpl;
+}
+
+
+	
 
 
 sub colorsToHtml() {

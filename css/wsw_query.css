@@ -1,0 +1,113 @@
+* {
+	padding: 0px;
+	margin: 0px;
+}
+
+ul {
+	list-style-type: none;
+}
+	
+
+body {
+	background-color: #fff;
+	font-size: 1em;
+	font-family: Verdana;
+	font-weight: bold;
+}
+
+.wswserver {
+	position: relative;
+	color: #fff;
+	background-color: #000;
+	float: left;;
+	top: 30px;
+	left: 20px;
+	padding: 10px 10px;
+}
+
+.hostname {
+	font-size: 1.7em;
+	border-bottom: 3px solid #fff;
+}
+
+.gamename {
+	font-size: .9em;
+	font-family: sans;
+	text-align: center;
+	padding: 4px 0px;
+	padding-top: 5px;
+}
+
+.topscores {
+	font-size: 1em;
+	text-align: center;
+	margin: 0px auto;
+	margin-bottom: 8px;
+
+}
+
+.score {
+	font-family: sans;
+	display: inline;
+	padding: 0px 15px;
+}
+
+.basicinfo {
+	float: left;
+	background-color: #333;
+	width: 100%;
+	font-size: 1.3em;
+	border-bottom: 2px solid #000;
+}
+
+.basicinfo ul {
+	width: 100%;
+}
+
+.basicinfo li {
+	display: inline;
+	background-color: #333;
+	padding: 0px 5px;
+	padding-top: 8px;
+	padding-bottom: 4px;
+}
+
+.mapname {
+	float: left;
+}
+
+.clientinfo {
+	float: right;
+}
+
+.clients {
+	background-color: #222;
+	color: #fff;
+	margin-top: 2px;
+}
+
+.player {
+	font-family: arial;
+	font-size: .9em;
+	padding: 3px 10px;
+	border-top: 1px solid #fff;
+	border-bottom: 1px solid #fff;
+}
+
+.player + .player {
+	margin-top: 3px;
+}
+
+.carrot0 { color:#000; }
+.carrot1 { color:#F00; }
+.carrot2 { color:#0F0; }
+.carrot3 { color:#ff0; }
+.carrot4 { color:#00f; }
+.carrot5 { color:#0ff; }
+.carrot6 { color:#f0f; }
+.carrot7 { color:#fff; }
+.carrot8 { color:#ff8000; }
+.carrot9 { color:#808080; }
+
+.t_alpha { background-color: #f00; }
+.t_beta {background-color: #00f; }
