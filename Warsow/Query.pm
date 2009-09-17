@@ -12,6 +12,8 @@ sub new {
 	$self->{NEED_PASS} = undef;
 	$self->{MAP_NAME} = undef;
 	$self->{HOST_NAME} = undef;
+	$self->{HOST_ADDRESS} = undef;
+	$self->{HOST_PORT} = undef;
 	$self->{MAX_CLIENTS} = undef;
 	$self->{GAME_TYPE} = undef;
 	$self->{NUM_CLIENTS} = undef;
@@ -57,6 +59,35 @@ sub host_name {
 	return $self->{HOST_NAME};
 }
 
+sub host_address {
+	my $self = shift;
+	if (@_) { $self->{HOST_ADDRESS} = shift }
+	return $self->{HOST_ADDRESS};
+}
+
+sub host_port {
+	my $self = shift;
+	if (@_) { $self->{HOST_PORT} = shift }
+	return $self->{HOST_PORT};
+}
+
+sub host {
+	my $self = shift;
+	my ($host, $port) = @_;
+
+	unless ($port) {
+		if ($host =~ m/:/) {
+			$host, $port = split(/:/, $host);
+		} else {
+			$port = "44400";
+		}
+	}
+	
+	$self->host_address($host);
+	$self->host_port($port);
+
+}
+
 sub max_clients {
 	my $self = shift;
 	if (@_) { $self->{MAX_CLIENTS} = shift }
@@ -86,6 +117,11 @@ sub game_type {
 	return $game_types->{ $self->{GAME_TYPE} };
 }
 
+sub short_game_type {
+	my $self = shift;
+	return $self->{GAME_TYPE};
+}
+
 sub num_clients {
 	my $self = shift;
 	if (@_) { $self->{NUM_CLIENTS} = shift }
@@ -108,10 +144,11 @@ sub clientlist {
 	foreach ($self->clients) {
 		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
 		($score, $ping, $name, $team) = ($1, $2, $3, $4);
-		$back .= qq/<li class="player">/ . $name . "   " . $score . "</li>\n";
+		$back .= qq/<li class="player">/ . &colorsToSpan($name) . "   " . $score . "</li>\n";
 	}
 
 	$back .= "</ul>";
+
 	return $back;
 }
 
@@ -123,37 +160,58 @@ sub topscores {
 	my %players;
 
 	my ($back);
-
+		
 	my @clients = $self->clients;
 	foreach (@clients) {
 		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
 		my ($score, $ping, $name, $team) = ($1, $2, $3, $4);
 
+		if ($score == 9999) { $score = $score * -1; }
 		$scores{$name} = $score;
 		$teams{$name} = $team;
 	}
 
+	if ($self->teamgame) {
+		$back = qq/<div class="score">/
+	}
 
-		my @top_players = sort {  $scores{$b} <=> $scores{$a} } keys %scores;
-		
+	my @top_players = sort {  $scores{$b} <=> $scores{$a} } keys %scores;
 
-		$back = "<ul>\n";
-		
-#		my $huh = ((@top_players) < 2)?(@top_players):'2';
-#		print $huh . "huh\n";
-		foreach (0 .. ((@top_players) < 2)?(@top_players):'2') {
-			(@top_players == 0) && next;
-			# $back .= qq/<li class="players">/ . $top_players[$_] . "  " .  $scores{ $top_players[$_] } . "</li>\n";
-			$back .= qq/<li class="players">/ . $top_players[$_ - 1] . "  " .  $scores{ $top_players[$_ - 1] } . "</li>\n";
-		}
+	$back .= "<ul>\n";
 
-		$back .= "</ul>\n";
-		return $back;
+	my $huh = ((@top_players) < 2)?(@top_players):'2';
+
+	foreach (0 .. $huh) {
+		(@top_players == 0) && next;
+		$back .= qq/<li><ul class="playerline"><li class="player">/ . &colorsToSpan($top_players[$_]) . qq#</li> <li class="playerscore"># .  $scores{ $top_players[$_] } . "</li></ul></li><br>\n";
+	}
+
+	$back .= "</ul>\n";
+	return $back;
+}
+
+sub teamgame {
+	my $self = shift;
+	my @team_game_types = qw/ca tdm ctf bomb ca duel ica itdm ictf ibomb ica iduel/;
+	if (grep(/$self->{GAME_TYPE}/, @team_game_types)) {
+		return 1;
+	}
+	return 0;
 }
 
 sub GetData {
 	my $self = shift;
 	my ($host, $port) = @_;	
+
+	if ($host) { $self->host($host, $port); }
+
+	$host = $self->host_address;
+	$port = $self->host_port;
+
+	unless ($host) {
+		print "no host";
+		return 0;
+	}
 
 	my ($query_handle, $fourbyte, $query, $return_handle, $sv_reply, $out);
 	my @client_slurp;
@@ -212,6 +270,7 @@ sub GetData {
 
 	close($query_handle);
 
+	1;
 }
 
 sub PrintShortStatus() {
@@ -223,33 +282,30 @@ sub PrintShortStatus() {
 sub GetFullStatus {
 	my $self = shift;
 
+	if (@_) { $self->host(@_[0],@_[1]); }
+	
+	unless ($self->GetData()) {
+		print "no dice";
+		return "Unable to connect to server.";
+	}
+
 	open TPL, "templates/default.tpl"; # TODO: other templates
 	my @template = <TPL>;
 	my $tpl = join ('',@template);
 
 	my @tags = qw/HOST_NAME GAME_TYPE TOP_SCORES MAP_NAME CLIENTS MAX_PLAYERS CLIENT_LIST/;
-	my @fills = ($self->host_name, $self->game_type, $self->topscores, $self->map_name, $self->num_clients, $self->max_clients, $self->clientlist);
+	my @fills = (&colorsToSpan($self->host_name), $self->game_type, $self->topscores, $self->map_name, $self->num_clients, $self->max_clients, $self->clientlist);
 
 	my $tagiter = 0;	
 	foreach (@tags) {
 		$tpl =~ s/##$_##/$fills[$tagiter]/;
 		$tagiter++;
 	}
-		
-
-#	my @clients =  $self->clients();
-#	foreach (@clients) {
-#		print . "\n";
-#	}
 
 	return $tpl;
 }
 
-
-	
-
-
-sub colorsToHtml() {
+sub colorsToSpan() {
 	my	@colors = ( "#000", # 0 , black
 			"#F00", # 1, red
 			"#0F0", # 2, green
@@ -262,9 +318,20 @@ sub colorsToHtml() {
 			"#808080", #9, grey
 			);
 
-	my $message = shift(@_);
-	$message=~ s/\^(\d)/<font color="$colors[$1]">/g;
-	return $message;
+	my @parsed;
+
+	my @message = split(/\n/, shift(@_));
+
+	foreach (@message) {
+		s/^([^\^]*)\^(\d)/\1<span class="carrot\2">/;
+		s/\^(\d)/<\/span><span class="carrot\1">/g;
+		if (m/span/) { s/$/<\/span>/; }
+		unshift (@parsed, $_);
+	}
+
+
+
+	return join("\n", @parsed);
 }
 
 1;

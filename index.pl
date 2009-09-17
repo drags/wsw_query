@@ -7,14 +7,13 @@ $ketchup = new CGI;
 $mustard = new Query;
 
 print $ketchup->header;
-print $ketchup->start_html('wswq');
-foreach ($ketchup->param) {
-	print $ketchup->param($_),"<br>\n";
+print $ketchup->start_html(-title => 'wswq', -style => { -src => 'css/wsw_query.css'});
+
+unless ($ketchup->param('server')) {
+	print "Sorry, no server has been specified. Please add server=address.of.server to query string.<br>\n";
+	print end_html;
+	exit;
 }
+print $mustard->GetFullStatus($ketchup->param('server'),$ketchup->param('port'));
 
-$mustard->GetData('so.nuclearfallout.net','44400');
-
-$lies = $mustard->GetFullStatus();
-print "so umm " . $lies;
-	
 print end_html;
