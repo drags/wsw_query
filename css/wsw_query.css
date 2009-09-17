@@ -24,36 +24,75 @@ body {
 	margin-top: 30px;
 	margin-left: 20px;
 	padding: 10px 10px;
+	border: 2px solid #fff;
 }
 
 .hostname {
 	font-size: 1.4em;
-	border-bottom: 3px solid #fff;
+	padding: 0px 5px;
+	border-bottom: 2px solid #24F;
 }
 
 .gamename {
-	font-size: .9em;
+	color: #000;
+	background-color: #fff;
+	float: left;
+	width: 50%;
+	font-size: 1.1em;
 	font-family: Verdana;
 	text-align: center;
 	font-variant: small-caps;
-	padding: 4px 0px;
-	padding-top: 5px;
+	margin: 10px 0px;
+	padding: 0px 0px;
+}
+
+.gamename .title {
+	color: #fff;
+	background-color: #192021;
+	margin-top: 0px;
+	padding-top: 0px;
+	padding-bottom: 2px;
+	font-size: .6em;
+	font-variant: normal;
+	margin-bottom: -1px;
 }
 
 .topscores {
 	position: float;
+	float: left;
+	width: 50%;
 	font-size: 1em;
 	text-align: center;
-	margin: 0px auto;
-	margin-bottom: 8px;
+	margin: 4px auto;
+	margin-top: 0px;
 	background-color: #555;
+}
+
+.topscores .title {
+	color: #fff;
+	background-color: #192021;
+	margin-top: 0px;
+	padding-top: 0px;
+	padding-bottom: 2px;
+	font-size: .6em;
+	font-variant: normal;
+	margin-bottom: -1px;
+}
+
+.levelshot {
+	float: right;
+	margin: 10px 0px;
+}
+
+.levelshot img {
+	width 50%;
 }
 
 .score {
 	font-family: sans;
-	display: inline;
 	padding: 0px 15px;
 }
+
 
 .basicinfo {
 	float: left;
@@ -61,19 +100,22 @@ body {
 	width: 100%;
 	font-size: 1.3em;
 	border-bottom: 2px solid #000;
+	margin-top: 10px;
 	opacity:0.8;
 }
 
-.basicinfo ul {
+.basicinfo .title {
+	float: left;
 	width: 100%;
+	color: #fff;
+	display: block;
+	background-color: #192021;
+	font-size: .6em;
+	margin-bottom: -8px;
 }
 
-.basicinfo li {
-	display: inline;
-	background-color: #333;
-	padding: 0px 5px;
-	padding-top: 8px;
-	padding-bottom: 4px;
+.info {
+	margin-top: -9px;
 }
 
 .mapname {
@@ -85,14 +127,31 @@ body {
 }
 
 .clients {
+	width: 100%;
 	background-color: #555;
 	color: #fff;
 	margin-top: 2px;
 	border: 1px solid #ddd;
 }
 
+.clients .title {
+	color: #fff;
+	text-align: center;
+	background-color: #192021;
+	font-size: .6em;
+	font-variant: normal;
+	margin-top: 0px;
+	margin-bottom: -1px;
+	padding-top: 0px;
+	padding-bottom: 2px;
+}
+
+.playerline {
+	float: left;
+}
+
 .playerline li {
-	display: inline;
+
 }
 
 .player {
@@ -100,15 +159,16 @@ body {
 	font-family: arial;
 	font-size: .9em;
 	padding: 1px 3px;
+	padding-top: 3px;
 }
 
 .playerscore {
+	float: right;
 	text-align: right;
 }
 
 .player + .player {
 	border-top: 1px solid #fff;
-	margin-top: 3px;
 }
 
 .carrot0 { color:#000; }
@@ -122,5 +182,9 @@ body {
 .carrot8 { color:#ff8000; }
 .carrot9 { color:#808080; }
 
-.t_alpha { background-color: #f00; }
-.t_beta {background-color: #00f; }
+.team0 { opacity:.7; }
+.team1 { }
+.team2 { background-color: #8e1f1d; }
+.team3 { background-color: #0155b4; }
+.team4 { background-color: #0f0; }
+.team5 { background-color: #ff0; }

@@ -130,8 +130,18 @@ sub num_clients {
 
 sub clients {
 	my $self = shift;
+	my $players = {};
 	if (@_) { push @{ $self->{CLIENTS} }, @_ };
-	return @{ $self->{CLIENTS} };
+	
+	foreach (@{$self->{CLIENTS}}) {
+		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
+		my ($score, $ping, $name, $team) = ($1, $2, $3, $4);
+		$players->{$name}->{'score'} = $score;
+		$players->{$name}->{'ping'} = $ping;
+		$players->{$name}->{'team'} = $team;
+	}
+
+	return $players;
 }
 
 sub clientlist {
@@ -140,11 +150,12 @@ sub clientlist {
 	my ($back, $score, $ping, $name, $team);
 
 	$back = "<ul>\n";
-	
-	foreach ($self->clients) {
-		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
-		($score, $ping, $name, $team) = ($1, $2, $3, $4);
-		$back .= qq/<li class="player">/ . &colorsToSpan($name) . "   " . $score . "</li>\n";
+	my $players = $self->clients;	
+	if (keys %$players < 1) {
+		$back .= qq#<li class="player">No players connected.</li>#;
+	}
+	foreach (keys %$players) {
+		$back .= qq/<li class="player team/ . $players->{$_}->{'team'} . qq/">/ . &colorsToSpan($_) . qq/ <span class="playerscore">/  . $players->{$_}->{'score'} . "</span></li>\n";
 	}
 
 	$back .= "</ul>";
@@ -161,18 +172,16 @@ sub topscores {
 
 	my ($back);
 		
-	my @clients = $self->clients;
-	foreach (@clients) {
-		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
-		my ($score, $ping, $name, $team) = ($1, $2, $3, $4);
-
-		if ($score == 9999) { $score = $score * -1; }
-		$scores{$name} = $score;
-		$teams{$name} = $team;
+	my $clients = $self->clients;
+	foreach (keys %$clients) {
+		my ($name, $score);
+		$score = ($clients->{$_}->{'score'} == 9999)?$clients->{$_}->{'score'} * -1:$clients->{$_}->{'score'};
+		$scores{$_} = $score;
+		$teams{$_} = $clients->{$_}->{'team'};
 	}
 
 	if ($self->teamgame) {
-		$back = qq/<div class="score">/
+		# $back = qq/<div class="score">/
 	}
 
 	my @top_players = sort {  $scores{$b} <=> $scores{$a} } keys %scores;
@@ -183,7 +192,7 @@ sub topscores {
 
 	foreach (0 .. $huh) {
 		(@top_players == 0) && next;
-		$back .= qq/<li><ul class="playerline"><li class="player">/ . &colorsToSpan($top_players[$_]) . qq#</li> <li class="playerscore"># .  $scores{ $top_players[$_] } . "</li></ul></li><br>\n";
+		$back .= qq/<li class="player">/ . &colorsToSpan($top_players[$_]) . qq#<span class="playerscore"># .  $scores{ $top_players[$_] } . "</span></li>\n";
 	}
 
 	$back .= "</ul>\n";
@@ -298,7 +307,7 @@ sub GetFullStatus {
 
 	my $tagiter = 0;	
 	foreach (@tags) {
-		$tpl =~ s/##$_##/$fills[$tagiter]/;
+		$tpl =~ s/##$_##/$fills[$tagiter]/g;
 		$tagiter++;
 	}
 

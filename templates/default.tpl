@@ -4,24 +4,50 @@
 				##HOST_NAME##
 			</div>
 
+			<div class="basicinfo">
+
+				<div class="title">
+						<span class="mapname">map</span> 
+						<span class="clientinfo">players</span>
+				</div>
+
+			<br style="clear:both;" />
+
+				<div class="info">
+					<span class="mapname">##MAP_NAME##</span> 
+					<span class="clientinfo">##CLIENTS##/##MAX_PLAYERS##</span>
+				</div>
+
+			</div>
+
+			<br style="clear:both;" />
+
 			<div class="gamename">
+				<div class="title">
+					...playing
+				</div>
 				##GAME_TYPE##
 			</div>
 
+			<div class="levelshot">
+				<img width="180px" height="135px" src="levelshots/##MAP_NAME##.jpg"></img>
+			</div>
+
+
 			<div class="topscores">
 				<!-- TODO teamscores / topscores switch -->
+				<div class="title">
+					top 3 scores
+				</div>
 				##TOP_SCORES##
 			</div>
 
-			<div class="basicinfo">
-				<ul>
-					<li class="mapname">##MAP_NAME##</li> 
-					<li class="clientinfo">##CLIENTS##/##MAX_PLAYERS##</li>
-				</ul>
-			</div>
 			<br style="clear:both;" />
 
 			<div class="clients">
+				<div class="title">
+					clients
+				</div>
 				##CLIENT_LIST##
 			</div>
 
