@@ -30,7 +30,7 @@
 			</div>
 
 			<div class="levelshot">
-				<img width="180px" height="135px" src="levelshots/##MAP_NAME##.jpg"></img>
+				<img width="180px" height="135px" src="##LEVEL_SHOT##"></img>
 			</div>
 
 

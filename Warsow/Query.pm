@@ -77,7 +77,7 @@ sub host {
 
 	unless ($port) {
 		if ($host =~ m/:/) {
-			$host, $port = split(/:/, $host);
+			($host, $port) = split(/:/, $host);
 		} else {
 			$port = "44400";
 		}
@@ -161,6 +161,15 @@ sub clientlist {
 	$back .= "</ul>";
 
 	return $back;
+}
+
+sub levelshot {
+	my $self = shift;
+
+	my $map = $self->{MAP_NAME};
+	my $img = ( -e "levelshots/" . $map . ".jpg")?"levelshots/" . $map . ".jpg":"levelshots/unknown.jpg";
+
+	return $img;
 }
 
 sub topscores {
@@ -291,7 +300,7 @@ sub PrintShortStatus() {
 sub GetFullStatus {
 	my $self = shift;
 
-	if (@_) { $self->host(@_[0],@_[1]); }
+	if (@_) { $self->host($_[0], $_[1]); }
 	
 	unless ($self->GetData()) {
 		print "no dice";
@@ -302,8 +311,8 @@ sub GetFullStatus {
 	my @template = <TPL>;
 	my $tpl = join ('',@template);
 
-	my @tags = qw/HOST_NAME GAME_TYPE TOP_SCORES MAP_NAME CLIENTS MAX_PLAYERS CLIENT_LIST/;
-	my @fills = (&colorsToSpan($self->host_name), $self->game_type, $self->topscores, $self->map_name, $self->num_clients, $self->max_clients, $self->clientlist);
+	my @tags = qw/HOST_NAME GAME_TYPE TOP_SCORES MAP_NAME CLIENTS MAX_PLAYERS CLIENT_LIST LEVEL_SHOT/;
+	my @fills = (&colorsToSpan($self->host_name), $self->game_type, $self->topscores, $self->map_name, $self->num_clients, $self->max_clients, $self->clientlist, $self->levelshot);
 
 	my $tagiter = 0;	
 	foreach (@tags) {
@@ -332,8 +341,8 @@ sub colorsToSpan() {
 	my @message = split(/\n/, shift(@_));
 
 	foreach (@message) {
-		s/^([^\^]*)\^(\d)/\1<span class="carrot\2">/;
-		s/\^(\d)/<\/span><span class="carrot\1">/g;
+		s/^([^\^]*)\^(\d)/$1<span class="carrot$2">/;
+		s/\^(\d)/<\/span><span class="carrot$1">/g;
 		if (m/span/) { s/$/<\/span>/; }
 		unshift (@parsed, $_);
 	}
