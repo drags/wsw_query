@@ -22,6 +22,20 @@ sub new {
 	return $self;
 }
 
+sub get {
+	my $self = shift;
+	my ($key) = @_;
+
+	print "key is " . $key . "\n";
+
+	$key =~ s/(.*)/\U$1/g;
+
+	if (defined ($self->{$key}) ) {
+		return $self->{$key};
+	}
+
+	return undef;
+}
 
 sub mod {
 	my $self = shift;
