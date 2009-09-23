@@ -1,2 +1,3 @@
 *.rrd
-server_data/*/*.png
+*.png
+players.hist
