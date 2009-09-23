@@ -1,0 +1,2 @@
+*.rrd
+server_data/*/*.png
