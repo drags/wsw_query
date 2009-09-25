@@ -2,6 +2,7 @@
 
 package Poller; 
 use strict;
+
 use Warsow::Query;
 use File::Basename;
 use RRD::Simple;
@@ -17,37 +18,45 @@ sub new {
 	return $self;
 }
 
+# set host address if valid input supplied, always returns current host address
 sub host_address {
 	my $self = shift;
 
 	if (@_) {
-		my ($host) = @_;
+		my $host = shift;
 		
+		unless (defined($host)) { return $self->{HOST} }
 		$host =~ s/\s*//g;
 
-		$self->{HOST} = $host;
+		if ($host =~ m/\S+/) {
+			$self->{HOST} = $host;
+		}
+
 	}
 
 	return $self->{HOST};
 }
 
+# set port address if valid input supplied, always returns current port address
 sub host_port {
 	my $self = shift;
+	my $port = '';
 
 	if (@_) {
-		my ($port) = @_;	
+		$port = shift;	
+
+		unless (defined($port)) { return $self->{PORT} }
 		$port =~ s/\s*//g;
 
-		if ($port =~ m/\D/) {
-			return 0;
+		if ($port =~ m/\d+/) {
+			$self->{PORT} = $port;
 		}
-
-		$self->{PORT} = $port;
 	}
-
 	return $self->{PORT};
 }
 
+# return any key specified from self hash
+# TODO: change ivar in rras to pass references
 sub query {
 	my $self = shift;
 	if (@_) { $self->{QUERY} = shift } 
@@ -55,6 +64,7 @@ sub query {
 
 }
 
+# setup any RRAs to be tracked and graphed here.. all servers get all RRAs listed here
 sub getRRAs {
 	my $self = shift;
 	my $rras = {};
@@ -70,12 +80,20 @@ sub getRRAs {
 	return $rras;
 }
 
+# directory in same directory as script where data is stored
+# TODO: change to act like other accessors and update if valid input given, will
+# allow script to live seperate of data
 sub getWorkingDir {
 	return dirname($0) . "/server_data/";
 }
 
+# standardize directory to dump current servers data into
 sub DataDir {
 	my $self = shift;
+	my ($host, $port) = (@_);
+
+	$host = $self->host_address($host);
+	$port = $self->host_port($port);
 
 	unless ($self->host_address && $self->host_port) {
 		return undef;
@@ -85,6 +103,7 @@ sub DataDir {
 	return $datadir;
 }
 
+# create RRDs for each RRA
 sub createRRDs {
 	my $self = shift;
 	my ($host, $port) = @_;
@@ -96,7 +115,8 @@ sub createRRDs {
 	my $rras = $self->getRRAs;
 	my $datadir = $self->DataDir;
 
-	unless ($datadir) {
+	# make sure we have a directory for the data and it is writable by us
+	unless ($datadir && -w $datadir) {
 		print "Unable to get data directory.\n";
 		return 0;
 	}
@@ -106,6 +126,7 @@ sub createRRDs {
 			or die "Unable to create new data directory for host " . $self->host_address . ":" . $self->host_port . ".\n";
 	}
 
+	# create RRD with default settings and setup first source, if RRD exists, add_source
 	foreach (keys %$rras) {
 		my $rrd = RRD::Simple->new( 
 			file => $datadir . $rras->{$_}{'filename'}, 
@@ -123,6 +144,7 @@ sub createRRDs {
 	}
 }
 
+# use GetData to update the Query and update all defined RRAs using that data
 sub updateServer {
 	my $self = shift;
 	my ($host, $port) = @_;
@@ -132,7 +154,7 @@ sub updateServer {
 	$port = $self->host_port($port);
 
 	unless ($host && $port) {
-		die "Please pass host and port to updateRRDs.\n";
+		die "Please pass host and port to updateServer.\n";
 	}
 
 	my $rras = $self->getRRAs;
@@ -142,25 +164,29 @@ sub updateServer {
 	$q->GetData($host, $port);
 
 	foreach (keys %$rras) {
+		# rrd handler
 		my $rrd = RRD::Simple->new( 
 			file => $datadir . $rras->{$_}{'filename'}
 		); 
 
+		# if RRD doesn't exist yet, create
 		unless ( -e $datadir  . $rras->{$_}{'filename'} ) {
 			$self->createRRDs($host, $port);
 		}
 		
+		# grab data from query and update RRA
 		my $data = $q->get($rras->{$_}{'ivar'});
 		print "Updating " . $rras->{$_}{'source_name'} . " with value " . $data . "\n";
 		$rrd->update($rras->{$_}{'source_name'} => $data);
-
 	}
+	1;
 }
 
 sub updateGraphs {
 	my $self = shift;
 	my ($host, $port, @periods) = @_;
 
+	# unless periods has more than 0 elements, process short time periods
 	unless (@periods) {
 		@periods = ('hour','6hour','12hour','day','week','month');
 	}
@@ -168,6 +194,7 @@ sub updateGraphs {
 	# set and retrieve address info
 	$host = $self->host_address($host);
 	$port = $self->host_port($port);
+
 	
 	unless ($host && $port) {
 		die "Please pass host and port to updateRRDs.\n";
@@ -175,21 +202,29 @@ sub updateGraphs {
 
 	my $rras = $self->getRRAs;
 	my $datadir = $self->DataDir;
-	print "Datadir is " . $datadir . "\n";
 
 	foreach (keys %$rras) {
+		# rrd handler
 		my $rrd = RRD::Simple->new( 
 			file => $datadir . $rras->{$_}{'filename'}
 		); 
 
+		# if rrd isn't created yet, nothing to graph
 		unless ( -e $datadir . $rras->{$_}{'filename'}) {
-			die "Unable to locate RRD file at " . $datadir . $rras->{$_}{'filename'} . ".\n";
+			die "Unable to locate RRD file at " . $datadir . $rras->{$_}{'filename'} . ".\nMake sure to run updateServer before running updateGraphs.\n";
 		}
 
+		# generate new graphs
 		$rrd->graph(
 			destination => $datadir, 
 			periods => [ @periods ], 
-			sources => $rras->{$_}{'source_name'} 
+			sources => $rras->{$_}{'source_name'}, 
+			width => 419,
+			height => 108,
+			title => $rras->{$_}{'source_name'},
+			source_drawtypes => { players => 'AREA' },
+			source_colors => [ qw(00ff00) ],
+			extended_legend => 1
 		);
 	}
 }

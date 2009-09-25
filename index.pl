@@ -14,6 +14,7 @@ unless ($ketchup->param('server')) {
 	print end_html;
 	exit;
 }
+
 print $mustard->GetFullStatus($ketchup->param('server'),$ketchup->param('port'));
 
 print end_html;

@@ -51,4 +51,8 @@
 				##CLIENT_LIST##
 			</div>
 
+			<br style="clear:both;" />
+
+			##GRAPHS##
+
 		</div>

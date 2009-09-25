@@ -20,17 +20,17 @@ body {
 	float: left;
 	color: #fff;
 	background-color: #000;
-	float: left;;
 	margin-top: 30px;
 	margin-left: 20px;
 	padding: 10px 10px;
-	border: 2px solid #fff;
+	border: 4px double #444;
 }
 
 .hostname {
 	font-size: 1.4em;
 	padding: 0px 5px;
 	border-bottom: 2px solid #24F;
+	text-align: center;
 }
 
 .gamename {
@@ -122,6 +122,7 @@ body {
 
 .clients {
 	width: 100%;
+	float: left;
 	background-color: #555;
 	color: #fff;
 	margin-top: 2px;
@@ -140,7 +141,14 @@ body {
 	padding-bottom: 2px;
 }
 
+.pline {
+	width: 100%;
+	float: left;
+	display: block;
+}
+
 .player {
+	float: left;
 	text-align: left;
 	font-family: arial;
 	font-size: .9em;
@@ -149,11 +157,21 @@ body {
 }
 
 .playerscore {
-	float: right;
+	text-align: right;
 }
 
-.player + .player {
+.pline + .pline {
 	border-top: 1px solid #fff;
+}
+
+.graphs {
+	margin: 10px;
+	margin-top: 30px;
+	text-align: center;
+}
+
+.graphs img {
+	display: block;
 }
 
 .carrot0 { color:#000; }
