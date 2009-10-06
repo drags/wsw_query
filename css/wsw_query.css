@@ -35,9 +35,9 @@ body {
 
 .gamename {
 	color: #000;
-	background-color: #fff;
 	float: left;
-	width: 50%;
+	width: 100%;
+	background-color: #fff;
 	font-size: 1.1em;
 	font-family: Verdana;
 	text-align: center;
@@ -60,10 +60,10 @@ body {
 .topscores {
 	position: float;
 	float: left;
-	width: 50%;
+	width: 100%;
 	font-size: 1em;
 	text-align: center;
-	margin: 4px auto;
+	margin: 4px 0;
 	margin-top: 0px;
 	background-color: #555;
 }
@@ -79,14 +79,20 @@ body {
 	margin-bottom: -1px;
 }
 
+.gnt {
+	float: left;
+}
+
 .levelshot {
-	float: right;
-	margin: 10px 0px;
+	margin: 10px 10px;
+	margin-left: 0px;
+	float: left;
 }
 
 .levelshot img {
-	width 50%;
+	float: left;
 }
+
 
 .basicinfo {
 	float: left;
@@ -150,22 +156,35 @@ body {
 	text-align: left;
 	font-family: arial;
 	font-size: .9em;
-	padding: 1px 3px;
-	padding-top: 3px;
+	padding-left: 5px;
 }
 
 .playerscore {
 	text-align: right;
+	padding-right: 5px;
 }
 
 .pline + .pline {
 	border-top: 1px solid #fff;
 }
 
+.graph_toggle {
+	margin: 10px auto;
+	padding: 3px 0;
+	margin-bottom: 0;
+	font-size: .8em;
+	background-color: #222;
+	color: #ccc;
+}
+
 .graphs {
 	margin: 10px;
 	margin-top: 30px;
 	text-align: center;
+}
+
+.wswgraphs {
+	display: none;
 }
 
 .graphs img {
