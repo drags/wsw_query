@@ -3,9 +3,7 @@
 	$(document).ready(function(){
 	
 		$("#hostlist").change(function() {
-			alert($(this).attr("value") + "    " + location.search);
 			location.search = "?server=" + $(this).attr("value");
-
 		});
 
 });
@@ -19,7 +17,14 @@
 		Select a host...
 	</div>
 
-	<div class="hostpick">
-		<select id="hostlist" name="hostlist"><option selected="selected" value="-1">Select existing host</option><option value="so.nuclearfallout.net:44400">so.nuclearfallout.net:44400</option><option value="66.150.214.231:44400">66.150.214.231:44400</option></select> or <input name="newhost" value="add new host">
+	<div class="basicinfo">
+		<div class="hostpick">
+			<select id="hostlist" name="hostlist">
+				<option selected="selected" value="">Select existing host</option>
+				<option value="so.nuclearfallout.net:44400">so.nuclearfallout.net:44400</option>
+				<option value="66.150.214.231:44400">66.150.214.231:44400</option>
+			</select> 
+			or <input name="newhost" value="add new host">
+		</div>
 	</div>
 

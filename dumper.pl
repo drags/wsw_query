@@ -10,8 +10,7 @@ $query_handle = IO::Socket::INET->new(Proto => 'udp',
 		PeerPort => $port)
 	or die "socket: $@";
 
-$fourbyte = "ÿÿÿÿ";
-$fourbyte = chr(255) . chr(255) . chr(255) . chr(255);
+$fourbyte = chr(255) x 4;
 $query = $fourbyte . "getstatus";
 
 # port to listen on

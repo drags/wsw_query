@@ -25,21 +25,38 @@ sub new {
 	return $self;
 }
 
-# return any key requested
+# get a key
 sub get {
 	my $self = shift;
 	my ($key) = @_;
 
 	$key =~ s/(.*)/\U$1/g;
 
+	# if we have one
 	if (defined ($self->{$key}) ) {
 		return $self->{$key};
 	}
-
 	return undef;
 }
 
 # accessor functions, input validated functions to store/retrieve keys of self hash
+sub host_name {
+	my $self = shift;
+	if (@_) { $self->{HOST_NAME} = shift }
+	return $self->{HOST_NAME};
+}
+
+sub map_name {
+	my $self = shift;
+	if (@_) { $self->{MAP_NAME} = shift }
+	return $self->{MAP_NAME};
+}
+
+sub template {
+	my $self = shift;
+	if (@_) { $self->{TEMPLATE} = shift }
+	return $self->{TEMPLATE};
+}
 sub mod {
 	my $self = shift;
 	if (@_) { $self->{MOD} = shift }
@@ -64,34 +81,17 @@ sub need_pass {
 	return $self->{NEED_PASS};
 }
 
-sub map_name {
-	my $self = shift;
-	if (@_) { $self->{MAP_NAME} = shift }
-	return $self->{MAP_NAME};
-}
-
-sub host_name {
-	my $self = shift;
-	if (@_) { $self->{HOST_NAME} = shift }
-	return $self->{HOST_NAME};
-}
-
 sub host_address {
 	my $self = shift;
-	my $host = '';
 
 	if (@_) {
-		$host = shift;
-		
-		unless (defined($host)) { return $self->{HOST} }
+		my $host = shift;
 		$host =~ s/\s*//g;
 
-		if ($host =~ m/\S+/) {
+		if ($host) {
 			$self->{HOST} = $host;
 		}
-
 	}
-
 	return $self->{HOST};
 }
 
@@ -101,8 +101,6 @@ sub host_port {
 
 	if (@_) {
 		$port = shift;	
-
-		unless (defined($port)) { return $self->{PORT} }
 		$port =~ s/\s*//g;
 
 		if ($port =~ m/\d+/) {
@@ -141,15 +139,6 @@ sub game_type {
 	if (@_) { 
 		$self->{GAME_TYPE} = shift;
 	}
-	
-	my $game_types = { "ca" => "Clan Arena",
-							 "dm" => "Deathmatch",
-							 "tdm" => "Team Deathmatch",
-							 "ctf" => "Capture The Flag",
-							 "bomb" => "Bombing and Defuse",
-							 "da"	=> "Duel Arena",
-							 "race" => "Race"};
-
 	return $self->{GAME_TYPE};
 }
 
@@ -159,30 +148,19 @@ sub num_clients {
 	return $self->{NUM_CLIENTS};
 }
 
-# updates self->{CLIENTS} on input, returns hash of playerinfo built off self->{CLIENTS}
 sub clients {
 	my $self = shift;
-	my $players = {};
-	if (@_) { push @{ $self->{CLIENTS} }, @_ };
-	
-	foreach (@{$self->{CLIENTS}}) {
-		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
-		my ($score, $ping, $name, $team) = ($1, $2, $3, $4);
-		$players->{$name}->{'score'} = $score;
-		$players->{$name}->{'ping'} = $ping;
-		$players->{$name}->{'team'} = $team;
+
+	if (@_) {  
+		foreach (@_) {
+			push (@{$self->{CLIENTS}}, $_);
+		}
 	}
 
-	return $players;
-}
-
-# modify and/or retrieve template filename
-sub template {
-	my $self = shift;
-	if (@_) { $self->{TEMPLATE} = shift }
-	return $self->{TEMPLATE};
+	return $self->{CLIENTS};
 }
 # END accessor functions
+
 
 # translate gametype into long name
 sub game_name {
@@ -205,6 +183,22 @@ sub game_name {
 
 }
 
+# client hash for simpler interaction
+sub client_hash {
+	my $self = shift;
+	my $players = {};
+
+	foreach (@{$self->{CLIENTS}}) {
+		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
+		my ($score, $ping, $name, $team) = ($1, $2, $3, $4);
+		$players->{$name}->{'score'} = $score;
+		$players->{$name}->{'ping'} = $ping;
+		$players->{$name}->{'team'} = $team;
+	}
+
+	return $players;
+}
+
 
 # client list for use in template output
 sub clientlist {
@@ -213,7 +207,7 @@ sub clientlist {
 	my ($msg, $score, $ping, $name, $team);
 
 	$msg = "";
-	my $players = $self->clients;	
+	my $players = $self->client_hash;	
 	if (keys %$players < 1) {
 		$msg .= qq#<div class="player">No players connected.</div>#;
 	}
@@ -250,7 +244,7 @@ sub topscores {
 
 	my ($msg);
 		
-	my $clients = $self->clients;
+	my $clients = $self->client_hash;
 	foreach (keys %$clients) {
 		my $score = ($clients->{$_}->{'score'} == 9999)?$clients->{$_}->{'score'} * -1:$clients->{$_}->{'score'};
 		$scores{$_} = $score;
@@ -263,7 +257,7 @@ sub topscores {
 
 	foreach (0 .. $huh-1) {
 		(@top_players == 0) && next;
-		$msg .= qq/<div class="pline"><div class="player">/ . &colorsToSpan($top_players[$_]) . qq#</div><div class="playerscore"># .  $scores{ $top_players[$_] } . qq#</div></div>\n#;
+		$msg .= qq/<div class="pline team/ . $teams{$_} . qq/"><div class="player">/ . &colorsToSpan($top_players[$_]) . qq#</div><div class="playerscore"># .  $scores{ $top_players[$_] } . qq#</div></div>\n#;
 	}
 
 	return $msg;
@@ -311,7 +305,7 @@ sub GetData {
 
 
 	my ($query_handle, $fourbyte, $query, $return_handle, $sv_reply, $out);
-	my @client_slurp;
+	my @client_lines;
 
 	$query_handle = $self->Connect;
 
@@ -353,12 +347,14 @@ sub GetData {
 
 	# slurp up the players
 	for (my $i = 0; $i < $self->num_clients; $i++) {
-		$_ = <$query_handle>;
-		chomp; 
+		chomp($_ = <$query_handle>);
+
+		push @client_lines, $_;
 
 		# build object client array a line at a time.. 
-		$self->clients($_);
 	} 
+		
+	$self->clients(@client_lines);
 
 	close($query_handle);
 
