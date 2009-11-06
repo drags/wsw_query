@@ -161,7 +161,9 @@ sub updateServer {
 	my $datadir = $self->DataDir;
 
 	my $q = new Query;
-	$q->GetData($host, $port);
+	unless($q->GetData($host, $port)) {
+		return "Unable to connect to server.<br>\n";
+	}
 
 	foreach (keys %$rras) {
 		# rrd handler
