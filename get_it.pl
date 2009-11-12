@@ -7,4 +7,4 @@ $gopher = Query->new();
 
 $gopher->GetData('so.nuclearfallout.net','44400');
 
-print $gopher->GetFullStatus();
+print $gopher->get_full_status();

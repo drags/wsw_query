@@ -6,6 +6,10 @@
 			location.search = "?server=" + $(this).attr("value");
 		});
 
+		$("#qtrl_submit").click(function() {
+			location.search = "?server=" + $("#new_server").attr("value");
+		});
+
 });
 
 
@@ -24,7 +28,10 @@
 				<option value="so.nuclearfallout.net:44400">so.nuclearfallout.net:44400</option>
 				<option value="66.150.214.231:44400">66.150.214.231:44400</option>
 			</select> 
-			or <input name="newhost" value="add new host">
-		</div>
+			or <input id="new_server" value="add new host">
+			<input value= "add" type="submit" id="qtrl_submit">
+		</div> 
 	</div>
+		<br style="clear:both;" />
+</div>
 

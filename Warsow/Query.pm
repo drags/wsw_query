@@ -86,9 +86,9 @@ sub host_address {
 
 	if (@_) {
 		my $host = shift;
-		$host =~ s/\s*//g;
 
 		if ($host) {
+			$host =~ s/\s*//g;
 			$self->{HOST} = $host;
 		}
 	}
@@ -101,9 +101,9 @@ sub host_port {
 
 	if (@_) {
 		$port = shift;	
-		$port =~ s/\s*//g;
 
-		if ($port =~ m/\d+/) {
+		if ($port && $port =~ m/\d+/) {
+			$port =~ s/\s*//g;
 			$self->{PORT} = $port;
 		}
 	}
@@ -163,14 +163,9 @@ sub clients {
 
 
 # translate gametype into long name
-sub game_name {
+sub game_long_name {
 	my $self = shift;
 
-	if (@_) {
-		my $gt = shift;
-		$self->game_type($gt);
-	}
-		
 	my $game_types = { "ca" => "Clan Arena",
 							 "dm" => "Deathmatch",
 							 "tdm" => "Team Deathmatch",
@@ -180,10 +175,9 @@ sub game_name {
 							 "race" => "Race"};
 
 	return $game_types->{ $self->{GAME_TYPE} };
-
 }
 
-# client hash for simpler interaction
+# client hash for simpler access
 sub client_hash {
 	my $self = shift;
 	my $players = {};
@@ -201,21 +195,24 @@ sub client_hash {
 
 
 # client list for use in template output
-sub clientlist {
+sub t_client_list {
 	my $self = shift;
-
 	my ($msg, $score, $ping, $name, $team);
 
-	$msg = "";
 	my $players = $self->client_hash;	
-	if (keys %$players < 1) {
+	if (keys %$players == 0) {
 		$msg .= qq#<div class="player">No players connected.</div>#;
 	}
 	foreach (keys %$players) {
-		$msg .= qq/<div class="pline team/ . $players->{$_}->{'team'} . qq/">/ 
-				. qq/<div class="player">/ . &colorsToSpan($_) . qq/<\/div><div class="playerscore">/  . $players->{$_}->{'score'} . qq#</div></div>#;
+		$msg .= qq/<div class="pline team/ 
+					. $players->{$_}->{'team'} 
+					. qq/">/ 
+					. qq/<div class="player">/ 
+					. &colorsToSpan($_) 
+					. qq/<\/div><div class="playerscore">/  
+					. $players->{$_}->{'score'} 
+					. qq#</div></div>#;
 	}
-
 	return $msg;
 }
 
@@ -230,12 +227,12 @@ sub levelshot {
 }
 
 # return current team scores for use in template
-sub teamscores {
+sub team_scores {
 	1;	
 }
 
 # return top 3 player scores
-sub topscores {
+sub top_scores {
 	my $self = shift;
 
 	my %scores;
@@ -257,9 +254,14 @@ sub topscores {
 
 	foreach (0 .. $huh-1) {
 		(@top_players == 0) && next;
-		$msg .= qq/<div class="pline team/ . $teams{$_} . qq/"><div class="player">/ . &colorsToSpan($top_players[$_]) . qq#</div><div class="playerscore"># .  $scores{ $top_players[$_] } . qq#</div></div>\n#;
+		$msg .= qq/<div class="pline team/ 
+				. $teams{$_} 
+				. qq/"><div class="player">/ 
+				. &colorsToSpan($top_players[$_]) 
+				. qq#</div><div class="playerscore"># 
+				.  $scores{ $top_players[$_] } 
+				. qq#</div></div>\n#;
 	}
-
 	return $msg;
 }
 
@@ -270,11 +272,11 @@ sub teamgame {
 	if (grep(/$self->{GAME_TYPE}/, @team_game_types)) {
 		return 1;
 	}
-	return 0;
+	return undef;
 }
 
-# must be called after setting host info
-sub Connect {
+# initiates connection and returns query handle if successful, undef it not
+sub connect {
 	my $self = shift;
 	my $query_handle;
 
@@ -284,12 +286,15 @@ sub Connect {
 			Blocking => 1,
 			PeerAddr => $self->host_address, 
 			PeerPort => $self->host_port
-			) or die "socket: $@";
+			) or return undef;
 	return $query_handle;
 }
 
 # send UDP query to server for getinfo, parse reply into object hash
-sub GetData {
+# requires: nadda
+# accepts: host/port
+# returns: undef on fail, 1 on update
+sub get_data {
 	my $self = shift;
 	my ($host, $port) = @_;	
 
@@ -297,35 +302,33 @@ sub GetData {
 	$host = $self->host_address($host);
 	$port = $self->host_port($port);
 
-	# have to have a host by now
+	# must have a host by now
 	unless ($host) {
-		print "no host";
-		return 0;
+		warn "No host.\n";
+		return undef;
 	}
-
 
 	my ($query_handle, $fourbyte, $query, $return_handle, $sv_reply, $out);
 	my @client_lines;
 
-	$query_handle = $self->Connect;
+	$query_handle = $self->connect;
 
-	# returns 0 on fail
-	unless ($query_handle) { return 0 }
+	# returns undef on fail
+	unless ($query_handle) { return undef }
 
-	# hurrsplat
-	$fourbyte = chr(255) . chr(255) . chr(255) . chr(255);
+	# query
+	$fourbyte = chr(255) x 4;
 	$query = $fourbyte . "getstatus";
-
 	$query_handle->send($query); # send our request to the server
 
-	$query_handle->accept(); # accept data back from this socket
 
 	# process header / cvars
 	do {
 	# take a line
+
 		$_ = <$query_handle>;
 		# if not defined, no response, assume dead connection
-		unless(defined) { return 0 };
+		unless(defined) { return undef };
 		chomp; 
 	} until (m/challenge/);
 
@@ -362,12 +365,12 @@ sub GetData {
 }
 
 # for console output
-sub GetShortStatus() {
+sub get_short_status() {
 	my $self = shift;
 
 	if (@_) { $self->host($_[0], $_[1]); }
 	
-	unless ($self->GetData()) {
+	unless ($self->get_data()) {
 		return "Unable to connect to server.<br>\n";
 	}
 
@@ -375,13 +378,13 @@ sub GetShortStatus() {
 	return $msg;
 }
 
-# calls GetData, uses result to fill template and return
-sub GetFullStatus {
+# calls get_data, uses result to fill template and return
+sub get_full_status {
 	my $self = shift;
 
 	if (@_) { $self->host($_[0], $_[1]); }
 	
-	unless ($self->GetData()) {
+	unless ($self->get_data()) {
 		return "Unable to connect to server.<br>\n";
 	}
 
@@ -391,7 +394,7 @@ sub GetFullStatus {
 	my $tpl = join ('',@template);
 
 	my @tags = qw/HOST_NAME HOST_ADDRESS HOST_PORT GAME_TYPE TOP_SCORES MAP_NAME CLIENTS MAX_PLAYERS CLIENT_LIST LEVEL_SHOT GRAPHS/;
-	my @fills = (&colorsToSpan($self->host_name), $self->host_address, $self->host_port, $self->game_name, $self->topscores, $self->map_name, $self->num_clients, $self->max_clients, $self->clientlist, $self->levelshot, $self->getGraphs);
+	my @fills = (&colorsToSpan($self->host_name), $self->host_address, $self->host_port, $self->game_long_name, $self->top_scores, $self->map_name, $self->num_clients, $self->max_clients, $self->t_client_list, $self->levelshot, $self->getGraphs);
 
 	my $tagiter = 0;	
 	foreach (@tags) {

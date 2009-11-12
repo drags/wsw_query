@@ -15,7 +15,7 @@ my $q = new Query;
 
 my $now = time;
 
-$q->GetData($hostname, $port);
+$q->get_data($hostname, $port);
 
 my $numclients = $q->num_clients;
 my $mapname = $q->map_name;

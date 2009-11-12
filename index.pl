@@ -12,16 +12,20 @@ print $ketchup->header;
 print $ketchup->start_html(-title => 'qtrl', -style => { -src => 'css/wsw_query.css'});
 
 #server input
+print '<div class="container">';
 unless ($ketchup->param('server')) {
 	open NOS, "<templates/noserver.tpl";
 	my @template = <NOS>;
 	my $tpl = join ('',@template);
 	print $tpl;
 	print end_html;
+	print '</div>';
 	exit;
 }
 
 #get server info and print
-print $mustard->GetFullStatus($ketchup->param('server'),$ketchup->param('port'));
+print $mustard->get_full_status($ketchup->param('server'),$ketchup->param('port'));
 
+
+print '</div>';
 print end_html;
