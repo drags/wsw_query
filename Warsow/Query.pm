@@ -325,8 +325,15 @@ sub get_data {
 	# process header / cvars
 	do {
 	# take a line
+		eval {
+			local $SIG{ALRM} = sub { die 0 };
+			alarm(4);
+			$_ = <$query_handle>;
+			alarm(0);
+			1;
+		} or return undef;
+		
 
-		$_ = <$query_handle>;
 		# if not defined, no response, assume dead connection
 		unless(defined) { return undef };
 		chomp; 
