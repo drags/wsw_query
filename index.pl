@@ -23,8 +23,14 @@ unless ($ketchup->param('server')) {
 	exit;
 }
 
-#get server info and print
-print $mustard->get_full_status($ketchup->param('server'),$ketchup->param('port'));
+#setup host
+$mustard->host_address($ketchup->param('server'));
+$mustard->host_port($ketchup->param('port'));
+$mustard->template('default');
+$mustard->query();
+
+#render the template
+print $mustard->render_template($ketchup->param('server'),$ketchup->param('port'));
 
 
 print '</div>';

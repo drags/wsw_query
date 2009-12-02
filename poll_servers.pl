@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-use lib '/var/www/hurr/htdocs/wsw_query/';
 use strict;
 use Warsow::Poller;
 

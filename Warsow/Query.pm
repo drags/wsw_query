@@ -1,9 +1,9 @@
 #!/usr/bin/perl 
 
 package Query; 
-use lib '/var/www/hurr/htdocs/wsw_query/';
 use Warsow::Poller;
 use IO::Socket;
+use CGI ':standard';
 use strict;
 
 sub new {
@@ -20,12 +20,12 @@ sub new {
 	$self->{GAME_TYPE} = undef;
 	$self->{NUM_CLIENTS} = undef;
 	$self->{CLIENTS} = [];
-	$self->{TEMPLATE} = 'templates/default.tpl';
+	$self->{TEMPLATE} = 'default';
 	bless ($self);
 	return $self;
 }
 
-# get a key
+# get arbitrary key
 sub get {
 	my $self = shift;
 	my ($key) = @_;
@@ -40,7 +40,7 @@ sub get {
 }
 
 # accessor functions, input validated functions to store/retrieve keys of self hash
-sub host_name {
+sub sv_hostname {
 	my $self = shift;
 	if (@_) { $self->{HOST_NAME} = shift }
 	return $self->{HOST_NAME};
@@ -55,8 +55,10 @@ sub map_name {
 sub template {
 	my $self = shift;
 	if (@_) { $self->{TEMPLATE} = shift }
-	return $self->{TEMPLATE};
+	my $template = "templates/" . $self->{TEMPLATE} . ".tpl";
+	return $template;
 }
+
 sub mod {
 	my $self = shift;
 	if (@_) { $self->{MOD} = shift }
@@ -88,8 +90,7 @@ sub host_address {
 		my $host = shift;
 
 		if ($host) {
-			$host =~ s/\s*//g;
-			$self->{HOST} = $host;
+			($self->{HOST} = $host) =~ s/\s*//g;
 		}
 	}
 	return $self->{HOST};
@@ -103,8 +104,7 @@ sub host_port {
 		$port = shift;	
 
 		if ($port && $port =~ m/\d+/) {
-			$port =~ s/\s*//g;
-			$self->{PORT} = $port;
+			($self->{PORT} = $port) =~ s/\s*//g;
 		}
 	}
 	return $self->{PORT};
@@ -152,7 +152,7 @@ sub clients {
 	my $self = shift;
 
 	if (@_) {  
-		foreach (@_) {
+		for (@_) {
 			push (@{$self->{CLIENTS}}, $_);
 		}
 	}
@@ -161,6 +161,23 @@ sub clients {
 }
 # END accessor functions
 
+# queriable servers list, stored seperately for easy manipulation
+# TODO: option for storing in client cookie
+# TODO: option for enabling/disabling altogether
+sub queriable_servers {
+	my $self = shift;
+		
+	open SERVS, "<servers.conf";
+	my @servers = grep { !m/#/ } <SERVS>;
+
+	for (@servers) {
+		print; 
+	}
+
+	if (@_) {
+
+	}
+}
 
 # translate gametype into long name
 sub game_long_name {
@@ -177,14 +194,13 @@ sub game_long_name {
 	return $game_types->{ $self->{GAME_TYPE} };
 }
 
-# client hash for simpler access
+# client hash for accessing data in client status lines
 sub client_hash {
 	my $self = shift;
 	my $players = {};
 
-	foreach (@{$self->{CLIENTS}}) {
-		m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
-		my ($score, $ping, $name, $team) = ($1, $2, $3, $4);
+	for (@{$self->{CLIENTS}}) {
+		my ($score, $ping, $name, $team) = m/(\d*)\s(\d*)\s"([^"]*)"\s(\d*)/;
 		$players->{$name}->{'score'} = $score;
 		$players->{$name}->{'ping'} = $ping;
 		$players->{$name}->{'team'} = $team;
@@ -201,17 +217,17 @@ sub t_client_list {
 
 	my $players = $self->client_hash;	
 	if (keys %$players == 0) {
-		$msg .= qq#<div class="player">No players connected.</div>#;
+		$msg .= div({class=>"player"}, "No players connected.");
 	}
-	foreach (keys %$players) {
-		$msg .= qq/<div class="pline team/ 
-					. $players->{$_}->{'team'} 
-					. qq/">/ 
-					. qq/<div class="player">/ 
-					. &colorsToSpan($_) 
-					. qq/<\/div><div class="playerscore">/  
-					. $players->{$_}->{'score'} 
-					. qq#</div></div>#;
+	for (keys %$players) {
+		$team = $players->{$_}->{'team'};
+		$score = $players->{$_}->{'score'};
+
+		$msg .= div({class=>"pline team" . $team}
+					, div({class=>"player"}, &colorsToSpan($_))
+					, div({class=>"playerscore"}, $score) 
+				);
+
 	}
 	return $msg;
 }
@@ -242,9 +258,8 @@ sub top_scores {
 	my ($msg);
 		
 	my $clients = $self->client_hash;
-	foreach (keys %$clients) {
-		my $score = ($clients->{$_}->{'score'} == 9999)?$clients->{$_}->{'score'} * -1:$clients->{$_}->{'score'};
-		$scores{$_} = $score;
+	for (keys %$clients) {
+		$scores{$_} = ($clients->{$_}->{'score'} == 9999)?$clients->{$_}->{'score'} * -1:$clients->{$_}->{'score'};
 		$teams{$_} = $clients->{$_}->{'team'};
 	}
 
@@ -252,15 +267,13 @@ sub top_scores {
 
 	my $huh = ((@top_players) < 2)?(@top_players):'3';
 
-	foreach (0 .. $huh-1) {
-		(@top_players == 0) && next;
-		$msg .= qq/<div class="pline team/ 
-				. $teams{$_} 
-				. qq/"><div class="player">/ 
-				. &colorsToSpan($top_players[$_]) 
-				. qq#</div><div class="playerscore"># 
-				.  $scores{ $top_players[$_] } 
-				. qq#</div></div>\n#;
+	for (0 .. $huh-1) {
+		(@top_players == 0) && last;
+
+		$msg .= div({class=>"pline team" . $teams{ $top_players[$_] }}
+					, div({class=>"player"}, &colorsToSpan($top_players[$_]))
+					, div({class=>"playerscore"}, $scores{ $top_players[$_] })
+				);
 	}
 	return $msg;
 }
@@ -294,7 +307,7 @@ sub connect {
 # requires: nadda
 # accepts: host/port
 # returns: undef on fail, 1 on update
-sub get_data {
+sub query {
 	my $self = shift;
 	my ($host, $port) = @_;	
 
@@ -349,7 +362,7 @@ sub get_data {
 		$self->match_time($3);
 		$self->need_pass($4);
 		$self->map_name($5);
-		$self->host_name($6);
+		$self->sv_hostname($6);
 		$self->max_clients($7);
 		$self->game_type($8);
 		$self->num_clients($9);
@@ -377,34 +390,36 @@ sub get_short_status() {
 
 	if (@_) { $self->host($_[0], $_[1]); }
 	
-	unless ($self->get_data()) {
-		return "Unable to connect to server.<br>\n";
+	unless ($self->query()) {
+		return "Unable to connect to server.\n";
 	}
 
-	my $msg = $self->host_name . "\n" . $self->map_name . "\n" . $self->num_clients . "/" . $self->max_clients . "\n";
+	my $msg = $self->sv_hostname . "\n" . $self->map_name . "\n" . $self->num_clients . "/" . $self->max_clients . "\n";
 	return $msg;
 }
 
-# calls get_data, uses result to fill template and return
-sub get_full_status {
+# calls query, uses result to fill template and return
+sub render_template {
 	my $self = shift;
 
-	if (@_) { $self->host($_[0], $_[1]); }
-	
-	unless ($self->get_data()) {
-		return "Unable to connect to server.<br>\n";
+	if (@_) { 
+		$self->host($_[0], $_[1]); 
+	}
+
+	unless ($self->query()) {
+		$self->sv_hostname("Unable to connect to server");
 	}
 
 	my $template_file = $self->template;
-	open TPL, "<" . $template_file; # TODO: other templates
+	open TPL, "<" . $template_file; 
 	my @template = <TPL>;
 	my $tpl = join ('',@template);
 
 	my @tags = qw/HOST_NAME HOST_ADDRESS HOST_PORT GAME_TYPE TOP_SCORES MAP_NAME CLIENTS MAX_PLAYERS CLIENT_LIST LEVEL_SHOT GRAPHS/;
-	my @fills = (&colorsToSpan($self->host_name), $self->host_address, $self->host_port, $self->game_long_name, $self->top_scores, $self->map_name, $self->num_clients, $self->max_clients, $self->t_client_list, $self->levelshot, $self->getGraphs);
+	my @fills = (&colorsToSpan($self->sv_hostname), $self->host_address, $self->host_port, $self->game_long_name, $self->top_scores, $self->map_name, $self->num_clients, $self->max_clients, $self->t_client_list, $self->levelshot, $self->get_graphs);
 
 	my $tagiter = 0;	
-	foreach (@tags) {
+	for (@tags) {
 		$tpl =~ s/##$_##/$fills[$tagiter]/g;
 		$tagiter++;
 	}
@@ -429,7 +444,7 @@ sub colorsToSpan() {
 
 	my @message = split(/\n/, shift(@_));
 
-	foreach (@message) {
+	for (@message) {
 		s/^([^\^]*)\^(\d)/$1<span class="carrot$2">/;
 		s/\^(\d)/<\/span><span class="carrot$1">/g;
 		if (m/span/) { s/$/<\/span>/; }
@@ -443,7 +458,7 @@ sub colorsToSpan() {
 
 # graph div if they're data on hand
 # TODO: cycle RRAs and -e filename
-sub getGraphs {
+sub get_graphs {
 	my $self = shift;
 
 	my $p = new Poller;
@@ -453,15 +468,16 @@ sub getGraphs {
 	$host = $self->host_address($host);
 	$port = $self->host_port($port);
 
-
 	unless ( -d $p->DataDir($host, $port) )  {
 		return "";
 	}
 
-	my $msg .= "	<div class=\"graphs\">
-				<img title=\"daily\" src=\"server_data/" . $self->host_address . "-" . $self->host_port . "/players-daily.png\"></img><br>
-				<img title=\"weekly\" src=\"server_data/" . $self->host_address . "-" . $self->host_port . "/players-weekly.png\"></img><br>
-			</div>";
+	my $msg .= div({class=>"graphs"} 
+					, img({title=>"daily",src=>"server_data/" . $self->host_address . "-" . $self->host_port . "/players-daily.png"})
+					, br()
+					, img({title=>"weekly",src=>"server_data/" . $self->host_address . "-" . $self->host_port . "/players-weekly.png"})
+					, br()
+				);
 
 	return $msg;
 }

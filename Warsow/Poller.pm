@@ -144,7 +144,7 @@ sub createRRDs {
 	}
 }
 
-# use get_data to update the Query and update all defined RRAs using that data
+# use query to update the Query and update all defined RRAs using that data
 sub updateServer {
 	my $self = shift;
 	my ($host, $port) = @_;
@@ -161,7 +161,7 @@ sub updateServer {
 	my $datadir = $self->DataDir;
 
 	my $q = new Query;
-	unless($q->get_data($host, $port)) {
+	unless($q->query($host, $port)) {
 		return "Unable to connect to server.<br>\n";
 	}
 
